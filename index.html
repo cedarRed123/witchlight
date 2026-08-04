@@ -41,6 +41,7 @@
   :root{
     --void:#17100f; --velvet:#2c1519; --brass:#c9a24b; --brass-dim:#8c6f37;
     --pale:#e8dcc3; --stamp:#a8202c; --live:#7fb069;
+    --tile:470px; --page:1500px;
     --display:"Oswald","Arial Narrow",Impact,sans-serif;
     --type:"Special Elite","Courier New",monospace;
   }
@@ -52,7 +53,7 @@
   }
   body::after{content:""; position:fixed; inset:0; pointer-events:none; opacity:.5; z-index:1;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E")}
-  .wrap{position:relative; z-index:2; width:100%; max-width:860px; margin:0 auto; padding:0 clamp(14px,3vw,26px)}
+  .wrap{position:relative; z-index:2; width:100%; max-width:var(--page); margin:0 auto; padding:0 clamp(14px,3vw,26px)}
 
   /* ---------- header ---------- */
   .plate{display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -62,6 +63,14 @@
   .chip{font-family:var(--display); letter-spacing:.2em; font-size:11px; text-transform:uppercase;
     border:1px solid rgba(201,162,75,.42); padding:.4em .7em .34em; color:var(--pale)}
   .chip.role{background:rgba(201,162,75,.16); border-color:var(--brass)}
+  .sizes{display:inline-flex; border:1px solid rgba(201,162,75,.42)}
+  .sizes button{background:none; border:0; border-left:1px solid rgba(201,162,75,.28); cursor:pointer;
+    font-family:var(--display); font-weight:300; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:rgba(232,220,195,.65); padding:.5em .72em .44em}
+  .sizes button:first-child{border-left:0}
+  .sizes button:hover{color:var(--pale); background:rgba(201,162,75,.12)}
+  .sizes button[aria-pressed="true"]{background:rgba(201,162,75,.9); color:#1b1210; font-weight:500}
+  .sizes button:focus-visible{outline:2px solid var(--brass); outline-offset:1px}
   .dot{width:7px; height:7px; border-radius:50%; background:var(--brass-dim); display:inline-block; margin-right:.6em; vertical-align:middle}
   .dot.live{background:var(--live); box-shadow:0 0 8px rgba(127,176,105,.8)}
   .dot.down{background:var(--stamp)}
@@ -74,8 +83,9 @@
   .setup.hide{display:none}
 
   /* ---------- ticket cards ---------- */
-  .rack{display:flex; flex-direction:column; gap:clamp(18px,3vw,28px)}
-  .card{position:relative}
+  .rack{display:grid; gap:clamp(16px,2.4vw,26px) clamp(16px,2vw,24px);
+    grid-template-columns:repeat(auto-fill, minmax(min(var(--tile), 100%), 1fr))}
+  .card{position:relative; container-type:inline-size}
   .tag{display:flex; align-items:center; gap:10px; margin-bottom:9px}
   .pick{position:relative; width:22px; height:22px; flex:none; cursor:pointer}
   .pick input{position:absolute; inset:0; opacity:0; margin:0; cursor:pointer}
@@ -83,24 +93,31 @@
   .pick span::after{content:""; position:absolute; inset:4px; background:var(--brass); opacity:0; transform:scale(.4); transition:opacity .12s, transform .12s cubic-bezier(.2,1.6,.4,1)}
   .pick input:checked+span::after{opacity:1; transform:scale(1)}
   .pick input:focus-visible+span{outline:2px solid var(--brass); outline-offset:2px}
-  .holder{flex:1 1 140px; min-width:0; margin:0; font-family:var(--display); font-weight:500;
-    font-size:clamp(17px,2.6vw,23px); letter-spacing:.03em; color:var(--pale);
+  .holder{flex:1 1 90px; min-width:0; margin:0; font-family:var(--display); font-weight:500;
+    font-size:clamp(15px,4.2cqw,22px); letter-spacing:.03em; color:var(--pale);
     background:none; border:0; border-bottom:1px solid transparent; padding:2px 0; width:100%}
   .holder:not([readonly]):hover{border-bottom-color:rgba(201,162,75,.4)}
   .holder:focus{outline:none; border-bottom-color:var(--brass)}
-  .rides{font-family:var(--display); font-weight:300; font-size:11px; letter-spacing:.22em;
+  .rides{font-family:var(--display); font-weight:300; font-size:clamp(9px,2.2cqw,11px); letter-spacing:.2em;
     text-transform:uppercase; color:var(--brass); white-space:nowrap}
   .rides.none{color:var(--stamp)}
   .kill{flex:none; background:none; border:0; color:rgba(232,220,195,.35); cursor:pointer;
-    font-family:var(--display); font-size:11px; letter-spacing:.18em; text-transform:uppercase; padding:.4em .5em}
+    font-family:var(--display); font-size:10px; letter-spacing:.16em; text-transform:uppercase; padding:.4em .3em}
   .kill:hover{color:var(--stamp)}
+  @media (hover:hover){                      /* keep small tiles uncluttered */
+    .kill{opacity:0; transition:opacity .15s ease}
+    .card:hover .kill, .card:focus-within .kill{opacity:1}
+  }
   .card.picked .tag{filter:drop-shadow(0 0 10px rgba(201,162,75,.2))}
 
-  .rail{overflow-x:auto; overflow-y:hidden; padding-bottom:52px; margin-bottom:-34px;
-    scrollbar-width:thin; scrollbar-color:var(--brass-dim) transparent}
+  .rail{overflow:visible; scrollbar-width:thin; scrollbar-color:var(--brass-dim) transparent}
   .rail::-webkit-scrollbar{height:5px}
   .rail::-webkit-scrollbar-thumb{background:var(--brass-dim); border-radius:99px}
-  .ticket{position:relative; min-width:560px; width:100%;
+  @media (max-width:620px){          /* phones: swipe a full-size stub so stars stay tappable */
+    .rail{overflow-x:auto; overflow-y:hidden; padding-bottom:44px; margin-bottom:-30px}
+    .ticket{min-width:430px}
+  }
+  .ticket{position:relative; width:100%;
     filter:drop-shadow(0 14px 22px rgba(0,0,0,.6)) drop-shadow(0 2px 3px rgba(0,0,0,.45));
     transition:filter .3s ease, outline-color .15s ease; outline:2px solid transparent; outline-offset:5px}
   .card.picked .ticket{outline-color:rgba(201,162,75,.75)}
@@ -134,8 +151,8 @@
 
   .stamp{position:absolute; left:33%; top:47%; pointer-events:none;
     transform:translate(-50%,-50%) rotate(-7.5deg); font-family:var(--display); font-weight:700;
-    text-transform:uppercase; font-size:clamp(13px,2.1vw,21px); letter-spacing:.16em; line-height:1;
-    color:var(--stamp); border:3px double currentColor; padding:.34em .7em .3em;
+    text-transform:uppercase; font-size:clamp(9px,4.4cqw,21px); letter-spacing:.14em; line-height:1;
+    color:var(--stamp); border:.16em double currentColor; padding:.34em .7em .3em;
     mix-blend-mode:multiply; opacity:0; visibility:hidden}
   .stamp.on{opacity:.84; visibility:visible}
   .stamp.thud{animation:thud .26s cubic-bezier(.3,1.6,.5,1) both}
@@ -167,7 +184,7 @@
     background:linear-gradient(to top, rgba(14,9,9,.98) 40%, rgba(14,9,9,.86));
     border-top:1px solid rgba(201,162,75,.3); padding:12px clamp(14px,3vw,26px);
     backdrop-filter:blur(7px)}
-  .bar-in{max-width:860px; margin:0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .bar-in{max-width:var(--page); margin:0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .count{font-family:var(--display); font-weight:300; font-size:11px; letter-spacing:.2em;
     text-transform:uppercase; color:rgba(232,220,195,.6); margin-right:auto; white-space:nowrap}
   .count b{color:var(--brass); font-weight:500; font-size:15px}
@@ -185,7 +202,7 @@
   .watching{position:fixed; left:0; right:0; bottom:0; z-index:3; padding:11px clamp(14px,3vw,26px);
     background:linear-gradient(to top, rgba(14,9,9,.98), rgba(14,9,9,.85));
     border-top:1px solid rgba(201,162,75,.24); font-size:12px; color:rgba(232,220,195,.55)}
-  .watching div{max-width:860px; margin:0 auto; display:flex; gap:1ch; align-items:baseline; flex-wrap:wrap}
+  .watching div{max-width:var(--page); margin:0 auto; display:flex; gap:1ch; align-items:baseline; flex-wrap:wrap}
   .hidden{display:none !important}
 
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important; transition:none !important}}
@@ -203,6 +220,11 @@
   <p class="plate">
     <span>Witchlight Carnival · ticket booth</span>
     <span class="rule"></span>
+    <span class="sizes" role="group" aria-label="Ticket size">
+      <button type="button" data-size="s">Small</button>
+      <button type="button" data-size="m">Medium</button>
+      <button type="button" data-size="l">Large</button>
+    </span>
     <span class="chip" id="roomChip">room —</span>
     <span class="chip role" id="roleChip">party view</span>
   </p>
@@ -277,11 +299,20 @@ const RECENT = 9000;   // only animate punches this fresh, so late joiners aren'
 
 const q = new URLSearchParams(location.search);
 const isDM = q.get("dm") === "1";
+const TILES = { s:340, m:470, l:700 };     // column width the grid aims for
+let tile = (q.get("size") || "m").toLowerCase();
+if (!TILES[tile]) tile = "m";
 let room = (q.get("room") || "").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,24);
-if (!room){
-  room = Math.random().toString(36).slice(2,8);
-  history.replaceState(null,"", "?room=" + room + (isDM ? "&dm=1" : ""));
+const brandNewRoom = !room;
+if (brandNewRoom) room = Math.random().toString(36).slice(2,8);
+function syncUrl(){
+  const p = new URLSearchParams();
+  p.set("room", room);
+  if (isDM) p.set("dm", "1");
+  if (tile !== "m") p.set("size", tile);
+  history.replaceState(null, "", "?" + p.toString());
 }
+if (brandNewRoom) syncUrl();
 
 const el = id => document.getElementById(id);
 const ui = {
@@ -742,6 +773,18 @@ el("copyDM").addEventListener("click", e => copy(true, e.currentTarget));
 }));
 
 /* ================= boot ================= */
+
+function applyTile(){
+  document.documentElement.style.setProperty("--tile", TILES[tile] + "px");
+  document.documentElement.style.setProperty("--page", tile === "s" ? "1460px" : tile === "l" ? "1560px" : "1500px");
+  document.querySelectorAll(".sizes button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.size === tile)));
+  syncUrl();
+}
+document.querySelectorAll(".sizes button").forEach(b => b.addEventListener("click", () => {
+  tile = b.dataset.size; applyTile();
+}));
+applyTile();
 
 ui.roomChip.textContent = "room " + room;
 ui.roleChip.textContent = isDM ? "ticket taker" : "party view";
