@@ -184,6 +184,7 @@
     background:linear-gradient(to top, rgba(14,9,9,.98) 40%, rgba(14,9,9,.86));
     border-top:1px solid rgba(201,162,75,.3); padding:12px clamp(14px,3vw,26px);
     backdrop-filter:blur(7px)}
+  @media (max-width:620px){ .bar{backdrop-filter:none; background:#120b0b} }
   .bar-in{max-width:var(--page); margin:0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .count{font-family:var(--display); font-weight:300; font-size:11px; letter-spacing:.2em;
     text-transform:uppercase; color:rgba(232,220,195,.6); margin-right:auto; white-space:nowrap}
@@ -488,12 +489,13 @@ function buildCard(id){
   const maskHoles = mk("g", {});
   mask.appendChild(maskHoles);
   svg.querySelector("defs").appendChild(mask);
-  svg.appendChild(mk("use", { href:"#artSrc", mask:"url(#mk-" + id + ")" }));
+  const artUse = mk("use", { href:"#artSrc", mask:"url(#mk-" + id + ")" });
+  svg.appendChild(artUse);
   const holeArt = mk("g", {});
   svg.appendChild(holeArt);
 
   const c = {
-    root, svg, maskHoles, holeArt,
+    root, svg, maskHoles, holeArt, mask, artUse,
     defs: svg.querySelector("defs"),
     chads: root.querySelector(".chadlayer"),
     ticket: root.querySelector(".ticket"),
@@ -580,14 +582,30 @@ function drawHole(c, id, i, seed, fresh){
   }
 }
 
+/* Mobile compositors cache the rasterised mask and often miss the invalidation when a
+   hole is REMOVED (adding one grows the dirty region, so that path repaints fine).
+   Re-issuing the mask under a fresh id, and dropping the ticket's filtered layer for a
+   single frame, forces the renderer to rebuild instead of reusing the stale picture. */
+let maskSerial = 0;
+function forceRepaint(c, id){
+  const nid = "mk-" + id + "-" + (++maskSerial);
+  c.mask.setAttribute("id", nid);
+  c.artUse.setAttribute("mask", "url(#" + nid + ")");
+  const held = c.ticket.style.filter;
+  c.ticket.style.filter = "none";
+  void c.ticket.getBoundingClientRect();          // flush before the next frame
+  requestAnimationFrame(() => { c.ticket.style.filter = held; });
+}
+
 function undrawHole(c, id, i){
-  if (!c.drawn.has(i)) return;
+  if (!c.drawn.has(i)) return false;
   c.drawn.delete(i);
   const sel = '[data-i="' + i + '"]';
   c.maskHoles.querySelector(sel) && c.maskHoles.querySelector(sel).remove();
   c.holeArt.querySelector(sel) && c.holeArt.querySelector(sel).remove();
   const cp = document.getElementById("hc-" + id + "-" + i);
   cp && cp.remove();
+  return true;
 }
 
 /* ================= render (runs on every remote change) ================= */
@@ -613,6 +631,7 @@ function render(){
     c.root.classList.toggle("picked", picked.has(id));
 
     const seeds = seedsOf(t);
+    let unpunched = false;
     for (let i = 0; i < RIDES; i++){
       const ts = punchedMap(t)[String(i)];
       if (ts != null){
@@ -635,13 +654,15 @@ function render(){
         }
       } else {
         c.pending.delete(i);
-        undrawHole(c, id, i);
+        if (undrawHole(c, id, i)) unpunched = true;
       }
       c.targets[i].disabled = !isDM || ts != null;
       c.targets[i].setAttribute("aria-label", ts != null
         ? "Ride " + (i+1) + " already punched"
         : "Punch ride " + (i+1) + " on " + (t.holder || "this ticket"));
     }
+
+    if (unpunched) forceRepaint(c, id);
 
     const n = left(t);
     c.rides.textContent = n === 0 ? "spent" : n + " of " + RIDES + " left";
