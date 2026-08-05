@@ -371,9 +371,12 @@ function seedsFor(){ return STARS.map(() => Math.floor(Math.random() * 1e9)); }
 
 /* ================= sound ================= */
 
-let actx = null, uid = 0;
+let actx = null, uid = 0, lastThunk = 0;
 function thunk(detune){
   if (!soundOn) return;
+  const at = (performance && performance.now) ? performance.now() : Date.now();
+  if (at - lastThunk < 45) return;      // one punch sound, not a stack of them
+  lastThunk = at;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === "suspended") actx.resume();
@@ -625,7 +628,7 @@ function render(){
 
   for (const [id,c] of cards) if (!tickets[id]) { c.root.remove(); cards.delete(id); picked.delete(id); }
 
-  let jolted = 0;
+  let animTickets = 0, animTotal = 0;
   ids.forEach((id, idx) => {
     const t = tickets[id];
     let c = cards.get(id);
@@ -641,15 +644,18 @@ function render(){
 
     const seeds = seedsOf(t);
     let unpunched = false;
+    let slot = -1, nth = 0, lastDelay = 0;   // this ticket's place in the cascade
     for (let i = 0; i < RIDES; i++){
       const ts = punchedMap(t)[String(i)];
       if (ts != null){
         if (!c.drawn.has(i) && !c.pending.has(i)){
-          // Animate only punches that just happened, so a late joiner doesn't get a paper storm.
-          const brandNew = ready && typeof ts === "number" && (now - ts) < RECENT && jolted < 6;
+          // Animate only punches that just happened — old timestamps mean a late joiner,
+          // who should just find the holes already there. animTotal is a runaway guard, not a style choice.
+          const brandNew = ready && typeof ts === "number" && (now - ts) < RECENT && animTotal < 48;
           if (brandNew){
-            const delay = jolted * 70;   // cascade down the rack
-            jolted++;
+            if (slot < 0) slot = animTickets++;
+            const delay = slot * 90 + nth * 55;   // ticket to ticket, then star to star
+            nth++; animTotal++; lastDelay = delay;
             c.pending.add(i);
             setTimeout(() => {
               c.pending.delete(i);
@@ -679,7 +685,7 @@ function render(){
     c.ticket.classList.toggle("spent", n === 0);
     if (n === 0){
       if (!c.stamp.classList.contains("on")){
-        const d = (ready && c.pending.size) ? 130 + jolted * 70 : 0;   // wait for the last hole
+        const d = (ready && c.pending.size) ? lastDelay + 150 : 0;   // wait for this ticket's last hole
         setTimeout(() => {
           c.stamp.classList.add("on");
           if (ready){ c.stamp.classList.remove("thud"); void c.stamp.offsetWidth; c.stamp.classList.add("thud"); }
