@@ -118,10 +118,11 @@
     .ticket{min-width:430px}
   }
   .ticket{position:relative; width:100%;
-    filter:drop-shadow(0 14px 22px rgba(0,0,0,.6)) drop-shadow(0 2px 3px rgba(0,0,0,.45));
-    transition:filter .3s ease, outline-color .15s ease; outline:2px solid transparent; outline-offset:5px}
+    box-shadow:0 14px 22px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.45);
+    transition:box-shadow .3s ease, opacity .3s ease, outline-color .15s ease;
+    outline:2px solid transparent; outline-offset:5px}
   .card.picked .ticket{outline-color:rgba(201,162,75,.75)}
-  .ticket.spent{filter:drop-shadow(0 8px 14px rgba(0,0,0,.5)) saturate(.85) brightness(.93)}
+  .ticket.spent{box-shadow:0 8px 14px rgba(0,0,0,.5); opacity:.9}
   .ticket svg{display:block; width:100%; height:auto}
   .chadlayer{position:absolute; inset:0; overflow:visible; pointer-events:none}
   .jolt{animation:jolt .16s ease-out}
@@ -315,6 +316,7 @@ function syncUrl(){
 }
 if (brandNewRoom) syncUrl();
 
+const ART = document.getElementById("artSrc").getAttribute("href");
 const el = id => document.getElementById(id);
 const ui = {
   rack:el("rack"), empty:el("empty"), addrow:el("addrow"), newName:el("newName"), addBtn:el("addBtn"),
@@ -489,7 +491,8 @@ function buildCard(id){
   const maskHoles = mk("g", {});
   mask.appendChild(maskHoles);
   svg.querySelector("defs").appendChild(mask);
-  const artUse = mk("use", { href:"#artSrc", mask:"url(#mk-" + id + ")" });
+  const artUse = mk("image", { href:ART, x:0, y:0, width:640, height:184,
+    preserveAspectRatio:"none", mask:"url(#mk-" + id + ")" });
   svg.appendChild(artUse);
   const holeArt = mk("g", {});
   svg.appendChild(holeArt);
@@ -574,7 +577,8 @@ function drawHole(c, id, i, seed, fresh){
     clip2.appendChild(mk("path", { d }));
     const chad = mk("g", { class:"chad" });
     chad.appendChild(clip2);
-    chad.appendChild(mk("use", { href:"#artSrc", "clip-path":"url(#" + cid + ")" }));
+    chad.appendChild(mk("image", { href:ART, x:0, y:0, width:640, height:184,
+      preserveAspectRatio:"none", "clip-path":"url(#" + cid + ")" }));
     chad.style.setProperty("--dx", (Math.random() * 10 - 5).toFixed(1) + "px");
     chad.style.setProperty("--spin", (200 + Math.random() * 260).toFixed(0) + "deg");
     c.chads.appendChild(chad);
@@ -591,10 +595,15 @@ function forceRepaint(c, id){
   const nid = "mk-" + id + "-" + (++maskSerial);
   c.mask.setAttribute("id", nid);
   c.artUse.setAttribute("mask", "url(#" + nid + ")");
-  const held = c.ticket.style.filter;
-  c.ticket.style.filter = "none";
-  void c.ticket.getBoundingClientRect();          // flush before the next frame
-  requestAnimationFrame(() => { c.ticket.style.filter = held; });
+  c.svg.setAttribute("viewBox", (maskSerial % 2) ? "0 0 640 184.0001" : "0 0 640 184");
+  void c.svg.getBoundingClientRect();             // flush now, don't wait for a frame
+  // one more pass shortly after, in case the first landed inside a coalesced frame
+  setTimeout(() => {
+    const n2 = "mk-" + id + "-" + (++maskSerial);
+    c.mask.setAttribute("id", n2);
+    c.artUse.setAttribute("mask", "url(#" + n2 + ")");
+    c.svg.setAttribute("viewBox", (maskSerial % 2) ? "0 0 640 184.0001" : "0 0 640 184");
+  }, 140);
 }
 
 function undrawHole(c, id, i){
